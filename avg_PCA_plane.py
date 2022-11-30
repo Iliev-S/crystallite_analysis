@@ -4,7 +4,7 @@ import pandas as pd
 from typing import List, Tuple 
 import Plane_fitting_functions as pff
 from time import time
-
+ # test
 input_top = str("/home/stoyan/crystallites/R2-2Serfices-1K-400-500ns/0-500ns/R2-2Serfices-1K-400-500ns_whole_cryst1.gro")
 input_trr = str("/home/stoyan/crystallites/R2-2Serfices-1K-400-500ns/0-500ns/R2-2Serfices-1K-0-500ns_cryst1.trr")
 no_file_extensnion = str(input_trr[:len(input_trr) - 4])
