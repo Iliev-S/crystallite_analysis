@@ -4,20 +4,38 @@ import pandas as pd
 import math
 from typing import List, Tuple 
 import Plane_fitting_functions as pff
+import argparse
+
+parser = argparse.ArgumentParser(description='Points of intercept for Voronoi')
+parser.add_argument('-f', '--f', type = str, metavar = '', required = True, help = 'Trajectory file')
+parser.add_argument('-s', '--s', type = str, metavar = '', required = True, help = 'Topology file')
+parser.add_argument('-b', '--begin', type = int, metavar = '', required = False, help = 'Begin time in frame number', 
+        default = 0)
+parser.add_argument('-e', '--end', type = int, metavar = '', required = False, help = 'End time in frame number', 
+        default = -2)
+parser.add_argument('-st', '--stride', type = int, metavar = '', required = False, help = 'Stride in frame number', 
+        default = 1)
+args = parser.parse_args()
 
 
-
-def main(input_top: str, input_trr: str):
-    # input_top = str("Pure_HEX_cryst1_layer2\R2_pure_prod_300K-278K_1K_400ns-500ns_whole_cryst1_allone_layer2_Dict_allone_5d2.gro")
-    # input_trr = str("Pure_HEX_cryst1_layer2\R2_pure_prod_300K-278K_1K_400ns-500ns_whole_cryst1_allone_layer2_Dict_allone_5d2.trr")
+def main(input_top: str, input_trr: str, begin: int, end: int, stride: int):
     no_file_extensnion = str(input_trr[:len(input_trr) - 4])
     u = mda.Universe(input_top, input_trr)
 
-    num_col = int(len(u.select_atoms('resname HEX').residues.resids)*3)
+    num_col = int(len(u.select_atoms('resname HEX C16').residues.resids)*3)
     num_rows = len(u.trajectory)
     intercept_traj = np.empty((0, num_col))
 
-    for ts in u.trajectory:
+    try:
+        if end == -2 or end == len(u.trajectory):
+            traj = u.trajectory[begin::stride]
+        else:
+            traj = u.trajectory[begin : end + 1: stride]
+    except IndexError:
+        print("index error\nexiting...")
+        exit(7)
+
+    for ts in traj:#u.trajectory:
         sel_C8 = u.select_atoms("name C8").positions
 
         X = sel_C8.T[0].flatten()
@@ -51,4 +69,4 @@ def main(input_top: str, input_trr: str):
     df.to_csv(f'{no_file_extensnion}_for_Voronoi.csv', index=True, header=False)
         
 if __name__ == "__main__":
-    main(input_top = '', input_trr = '')
+    main(input_top= args.s, input_trr= args.f, begin = args.begin, end = args.end, stride = args.stride)
