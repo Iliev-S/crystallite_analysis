@@ -1,3 +1,6 @@
+'''If you are using this script, please cite the following paper.
+Iliev, S.; Tsibranska, S.; Kichev, I.; Tcholakova, S.; Denkov, N.; Ivanova, A. Computational procedure for analysis of crystallites in polycrystalline solids of quasilinear molecules. Molecules 2023
+'''
 import MDAnalysis as mda
 import numpy as np
 import pandas as pd
