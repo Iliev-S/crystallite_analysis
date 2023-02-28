@@ -1,16 +1,30 @@
+'''When using this script in a published work, please cite the following paper.
+Iliev, S.; Tsibranska, S.; Kichev, I.; Tcholakova, S.; Denkov, N.; Ivanova, A. Computational procedure for analysis of crystallites in polycrystalline solids of quasilinear molecules. Molecules 2023
+'''
 import MDAnalysis as mda
-from matplotlib.pyplot import step 
 import numpy as np
-import math
 from typing import List, Dict
 import Plane_fitting_functions as pff
 from MDAnalysis.transformations import rotateby
+import argparse
 
-def main(input_top: str, input_trr: str, straight_mol: str, vacuum_width: float, ang_corr: float = 0):
-    # input_top = str('/home/stoyan/R2-289K/crystallite1/R2-278-289K_prod_whole_no_water_cryst1.gro')
-    # input_trr = str('/home/stoyan/R2-289K/crystallite1/R2-278-289K_prod_whole_no_water_cryst1.trr')
+parser = argparse.ArgumentParser(description='Imaging of molecules to reconstruct their real-space coordinates.')
+parser.add_argument('-f', '--f', type = str, metavar = '', required = True, help = 'Trajectory file')
+parser.add_argument('-s', '--s', type = str, metavar = '', required = True, help = 'Topology file')
+parser.add_argument('-stm', '--straight_mol', type = str, metavar = '', required = True, help = 'Residue ID of a straight molecule (all trans configurations)')
+parser.add_argument('-vac', '--vacuum', type = float, metavar = '', required = True, help = 'Vacuum width between the layers')
+parser.add_argument('-ang', '--ang_corr', type = float, metavar = '', required = False, help = 'Add angle correction in degrees if needed. Default value is 0',
+                    default = 0) 
+parser.add_argument('-b', '--begin', type = int, metavar = '', required = False, help = 'Begin time in frame number', 
+        default = 0)
+parser.add_argument('-e', '--end', type = int, metavar = '', required = False, help = 'End time in frame number', 
+        default = -2)
+parser.add_argument('-st', '--stride', type = int, metavar = '', required = False, help = 'Stride in frame number', 
+        default = 1)
+args = parser.parse_args()
+
+def main(input_top: str, input_trr: str, straight_mol: str, vacuum_width: float, begin: int, end: int, stride: int, ang_corr: float):
     no_file_extensnion = str(input_top[:len(input_top) - 4])
-
 
     u = mda.Universe(input_top, input_trr)
     u2 = mda.Universe(input_top)
@@ -30,9 +44,16 @@ def main(input_top: str, input_trr: str, straight_mol: str, vacuum_width: float,
     cross_prod_norm = cross_prod/(np.sqrt(cross_prod[0]**2 + cross_prod[1]**2 + cross_prod[2]**2))
     rotation_angle = pff.Vector_Plane_Angle(u2, Zvec)[0]
     '''Rotation angle'''
-
-    with mda.Writer(no_file_extensnion + "_Dict_allone.trr", n_atoms = u.atoms.n_atoms, multiframe = True) as W:
-        for ts in u.trajectory:
+    try:
+        if end == -2 or end == len(u.trajectory):
+            traj = u.trajectory[begin::stride]
+        else:
+            traj = u.trajectory[begin : end + 1: stride]
+    except IndexError:
+        print("index error\nexiting...")
+        exit(7)
+    with mda.Writer(f"{no_file_extensnion}_allone.trr", n_atoms = u.atoms.n_atoms, multiframe = True) as W:
+        for ts in traj:#u.trajectory[begin : end + 1: stride]:
             print(ts.time, end='\r')
             box_X, box_Y, box_Z = u.dimensions[0], u.dimensions[1], u.dimensions[2]
             sel_all_pos = u.atoms.positions
@@ -76,6 +97,9 @@ def main(input_top: str, input_trr: str, straight_mol: str, vacuum_width: float,
             u.atoms.positions = sel_all_pos
             # u.atoms.write(f'probni/{no_file_extensnion}_final_frame{frame}.gro')
             W.write(u.atoms)
+    print('\n')
 
 if __name__ == "__main__":
-    main(input_top= '', input_trr= '', straight_mol= '', vacuum_width= '', ang_corr = 0)
+    main(input_top= args.s, input_trr= args.f, straight_mol= args.straight_mol, vacuum_width= args.vacuum, 
+        ang_corr = args.ang_corr, begin = args.begin, end = args.end, stride = args.stride)
+    print(f'File created: {str(args.s[:len(args.s) - 4])}_allone.trr')
